@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "97646362122",
+    "project_id": "fitwave-d99c3",
+    "storage_bucket": "fitwave-d99c3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97646362122:android:57697c86ee49e29c7969f3",
+        "android_client_info": {
+          "package_name": "com.fitwave.fitwave"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNZ3xXbyTECMn5fk8qag-3Xx5BMJ4dNo4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
