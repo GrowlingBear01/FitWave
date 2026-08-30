@@ -150,6 +150,62 @@ class _LoginScreenState extends State<LoginScreen>
       );
     }
   }
+
+  Future<void> _forgotPassword() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your email address first.'),
+        ),
+      );
+      return;
+    }
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email address.'),
+        ),
+      );
+      return;
+    }
+    try {
+      await _authService.resetPassword(
+        email: email,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Password reset email sent. Check your inbox.',
+          ),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      String message;
+
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'No account found with this email.';
+          break;
+        case 'invalid-email':
+          message = 'Please enter a valid email address.';
+          break;
+        default:
+          message = 'Could not send reset email. Please try again.';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
   // ---------------- ANIMATION ----------------
 
   Widget animatedItem({required Widget child, required int index}) {
@@ -457,7 +513,7 @@ class _LoginScreenState extends State<LoginScreen>
                     alignment: Alignment.centerRight,
 
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: _forgotPassword,
 
                       child: const Text(
                         'Forgot Password?',

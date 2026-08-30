@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'profile_screen.dart';
+import '../services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -126,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen>
             _buildPlaceholder('Challenges', Icons.emoji_events_outlined),
             _buildPlaceholder('Progress', Icons.show_chart_rounded),
             _buildPlaceholder('Wallet', Icons.account_balance_wallet_outlined),
-            _buildPlaceholder('Profile', Icons.person_outline_rounded),
+            const ProfileScreen(),
           ],
         ),
       ),
@@ -239,6 +241,10 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                 ),
+
+                const SizedBox(width: 10),
+
+
               ],
             ),
           ),
