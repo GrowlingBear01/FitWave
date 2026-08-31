@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -10,6 +13,7 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  final AuthService _authService = AuthService();
 
   final TextEditingController _nameController = TextEditingController();
 
@@ -94,7 +98,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   // REGISTER
   // ===============================================================
 
-  void _register() {
+  Future<void> _register() async {
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) {
@@ -105,18 +109,59 @@ class _RegisterScreenState extends State<RegisterScreen>
       _isLoading = true;
     });
 
-    // TEMPORARY
-    // Firebase registration will be connected here.
+    try {
+      await _authService.register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
-    Future.delayed(const Duration(milliseconds: 900), () {
       if (!mounted) return;
 
       setState(() {
         _isLoading = false;
       });
 
-      Navigator.pushNamed(context, '/home');
-    });
+      Navigator.pushReplacementNamed(context, '/home');
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      String message;
+
+      switch (e.code) {
+        case 'email-already-in-use':
+          message = 'An account already exists with this email.';
+          break;
+        case 'invalid-email':
+          message = 'Please enter a valid email address.';
+          break;
+        case 'weak-password':
+          message = 'Please choose a stronger password.';
+          break;
+        default:
+          message = 'Registration failed. Please try again.';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Something went wrong. Please try again.'),
+        ),
+      );
+    }
   }
 
   // ===============================================================
