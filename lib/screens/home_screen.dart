@@ -548,135 +548,145 @@ class _HomeScreenState extends State<HomeScreen>
 
           const SizedBox(height: 10),
 
+          // ======================================================
+          // CURRENT CHALLENGE CARD
+          // ONLY CHANGE: GestureDetector + navigation
+          // ======================================================
           animatedItem(
             index: 5,
 
-            child: Container(
-              width: double.infinity,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(context, '/goal-selection');
+              },
 
-              padding: const EdgeInsets.all(19),
+              child: Container(
+                width: double.infinity,
 
-              decoration: BoxDecoration(
-                color: Colors.white,
+                padding: const EdgeInsets.all(19),
 
-                borderRadius: BorderRadius.circular(22),
+                decoration: BoxDecoration(
+                  color: Colors.white,
 
-                border: Border.all(color: primaryBlue.withOpacity(0.13)),
+                  borderRadius: BorderRadius.circular(22),
 
-                boxShadow: [
-                  BoxShadow(
-                    color: darkBlue.withOpacity(0.055),
-                    blurRadius: 18,
-                    offset: const Offset(0, 7),
-                  ),
-                ],
-              ),
+                  border: Border.all(color: primaryBlue.withOpacity(0.13)),
 
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                  boxShadow: [
+                    BoxShadow(
+                      color: darkBlue.withOpacity(0.055),
+                      blurRadius: 18,
+                      offset: const Offset(0, 7),
+                    ),
+                  ],
+                ),
 
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 45,
-                        height: 45,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
 
-                        decoration: BoxDecoration(
-                          color: softCoral,
-                          borderRadius: BorderRadius.circular(14),
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 45,
+                          height: 45,
+
+                          decoration: BoxDecoration(
+                            color: softCoral,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+
+                          child: const Icon(
+                            Icons.emoji_events_rounded,
+                            color: coral,
+                            size: 25,
+                          ),
                         ),
 
-                        child: const Icon(
-                          Icons.emoji_events_rounded,
-                          color: coral,
-                          size: 25,
-                        ),
-                      ),
+                        const SizedBox(width: 12),
 
-                      const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
 
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '7 Day Fitness Challenge',
 
-                          children: [
-                            Text(
-                              '7 Day Fitness Challenge',
-
-                              style: TextStyle(
-                                color: darkBlue,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
+                                style: TextStyle(
+                                  color: darkBlue,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
-                            ),
 
-                            SizedBox(height: 3),
+                              SizedBox(height: 3),
 
-                            Text(
-                              'Keep going! You are doing great.',
-                              style: TextStyle(color: textBlue, fontSize: 11),
-                            ),
-                          ],
+                              Text(
+                                'Keep going! You are doing great.',
+                                style: TextStyle(color: textBlue, fontSize: 11),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
 
-                      const Text(
-                        '68%',
-                        style: TextStyle(
-                          color: primaryBlue,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
+                        const Text(
+                          '68%',
+                          style: TextStyle(
+                            color: primaryBlue,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 17),
+                    const SizedBox(height: 17),
 
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
 
-                    child: LinearProgressIndicator(
-                      value: progress,
+                      child: LinearProgressIndicator(
+                        value: progress,
 
-                      minHeight: 9,
+                        minHeight: 9,
 
-                      backgroundColor: Color(0xFFE5F3F6),
+                        backgroundColor: Color(0xFFE5F3F6),
 
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        primaryBlue,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          primaryBlue,
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 9),
+                    const SizedBox(height: 9),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
-                    children: [
-                      Text(
-                        '$completedDays of $totalDays days completed',
+                      children: [
+                        Text(
+                          '$completedDays of $totalDays days completed',
 
-                        style: const TextStyle(
-                          color: textBlue,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          style: const TextStyle(
+                            color: textBlue,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
 
-                      const Text(
-                        '3 days left',
-                        style: TextStyle(
-                          color: coral,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                        const Text(
+                          '3 days left',
+                          style: TextStyle(
+                            color: coral,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
