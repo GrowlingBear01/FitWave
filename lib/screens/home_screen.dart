@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+
 import 'profile_screen.dart';
 import '../services/auth_service.dart';
+import '../services/challenge_service.dart';
+import '../models/challenge.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,6 +16,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
+  final ChallengeService _challengeService = ChallengeService();
 
   int _selectedIndex = 0;
 
@@ -87,12 +92,6 @@ class _HomeScreenState extends State<HomeScreen>
   final String userName = 'User';
 
   final int streak = 0;
-
-  final int completedDays = 0;
-
-  final int totalDays = 7;
-
-  final double progress = 0.68;
 
   final int walletCoins = 00;
 
@@ -558,143 +557,254 @@ class _HomeScreenState extends State<HomeScreen>
           // CURRENT CHALLENGE CARD
           // ONLY CHANGE: GestureDetector + navigation
           // ======================================================
-          animatedItem(
-            index: 5,
-
-            child: GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, '/goal-selection');
-              },
-
-              child: Container(
-                width: double.infinity,
-
-                padding: const EdgeInsets.all(19),
-
-                decoration: BoxDecoration(
-                  color: Colors.white,
-
-                  borderRadius: BorderRadius.circular(22),
-
-                  border: Border.all(color: primaryBlue.withOpacity(0.13)),
-
-                  boxShadow: [
-                    BoxShadow(
-                      color: darkBlue.withOpacity(0.055),
-                      blurRadius: 18,
-                      offset: const Offset(0, 7),
+          StreamBuilder<List<Challenge>>(
+            stream: _challengeService.getUserChallenges(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return animatedItem(
+                  index: 5,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(25),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
                     ),
-                  ],
-                ),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 45,
-                          height: 45,
-
-                          decoration: BoxDecoration(
-                            color: softCoral,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-
-                          child: const Icon(
-                            Icons.emoji_events_rounded,
-                            color: coral,
-                            size: 25,
-                          ),
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-
-                            children: [
-                              Text(
-                                '7 Day Fitness Challenge',
-
-                                style: TextStyle(
-                                  color: darkBlue,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-
-                              SizedBox(height: 3),
-
-                              Text(
-                                'Keep going! You are doing great.',
-                                style: TextStyle(color: textBlue, fontSize: 11),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const Text(
-                          '68%',
-                          style: TextStyle(
-                            color: primaryBlue,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
+                    child: const Center(
+                      child: CircularProgressIndicator(),
                     ),
+                  ),
+                );
+              }
 
-                    const SizedBox(height: 17),
-
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-
-                      child: LinearProgressIndicator(
-                        value: progress,
-
-                        minHeight: 9,
-
-                        backgroundColor: Color(0xFFE5F3F6),
-
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          primaryBlue,
-                        ),
+              if (snapshot.hasError) {
+                return animatedItem(
+                  index: 5,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: const Text(
+                      'Unable to load your challenge.',
+                      style: TextStyle(
+                        color: textBlue,
+                        fontSize: 12,
                       ),
                     ),
+                  ),
+                );
+              }
 
-                    const SizedBox(height: 9),
+              final challenges = snapshot.data ?? [];
 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
-                      children: [
-                        Text(
-                          '$completedDays of $totalDays days completed',
-
-                          style: const TextStyle(
-                            color: textBlue,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
+              if (challenges.isEmpty) {
+                return animatedItem(
+                  index: 5,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, '/goal-selection');
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: primaryBlue.withOpacity(0.13),
                         ),
-
-                        const Text(
-                          '3 days left',
-                          style: TextStyle(
-                            color: coral,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.add_circle_outline_rounded,
+                            color: primaryBlue,
+                            size: 32,
                           ),
+                          SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              'No active challenge yet.\nTap to create one!',
+                              style: TextStyle(
+                                color: darkBlue,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              // For now, display the most recent challenge.
+              final challenge = challenges.last;
+
+              final currentProgress =
+              _challengeService.calculateProgress(challenge);
+
+              final currentStatus =
+              _challengeService.calculateStatus(challenge);
+
+              final progressPercentage =
+              (currentProgress * 100).round();
+
+              final totalDays = challenge.duration;
+
+              final completedDays =
+              (currentProgress * totalDays).floor();
+
+              final daysRemaining =
+              (totalDays - completedDays).clamp(0, totalDays);
+
+              return animatedItem(
+                index: 5,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/workout',
+                      arguments: {
+                        'goal': challenge.goal,
+                        'exercise': challenge.exercise,
+                        'difficulty': challenge.difficulty,
+                        'duration': challenge.duration,
+                        'challengeId': challenge.id,
+                      },
+                    );
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(19),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: primaryBlue.withOpacity(0.13),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: darkBlue.withOpacity(0.055),
+                          blurRadius: 18,
+                          offset: const Offset(0, 7),
                         ),
                       ],
                     ),
-                  ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 45,
+                              height: 45,
+                              decoration: BoxDecoration(
+                                color: softCoral,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(
+                                Icons.emoji_events_rounded,
+                                color: coral,
+                                size: 25,
+                              ),
+                            ),
+
+                            const SizedBox(width: 12),
+
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${challenge.duration} Day ${challenge.goal} Challenge',
+                                    style: const TextStyle(
+                                      color: darkBlue,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 3),
+
+                                  Text(
+                                    '${challenge.exercise} • ${challenge.difficulty}',
+                                    style: const TextStyle(
+                                      color: textBlue,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            Text(
+                              '$progressPercentage%',
+                              style: const TextStyle(
+                                color: primaryBlue,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 17),
+
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: LinearProgressIndicator(
+                            value: currentProgress,
+                            minHeight: 9,
+                            backgroundColor:
+                            const Color(0xFFE5F3F6),
+                            valueColor:
+                            const AlwaysStoppedAnimation<Color>(
+                              primaryBlue,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 9),
+
+                        Row(
+                          mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '$completedDays of $totalDays days completed',
+                              style: const TextStyle(
+                                color: textBlue,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+
+                            Text(
+                              currentStatus == 'completed'
+                                  ? 'Completed'
+                                  : '$daysRemaining days left',
+                              style: TextStyle(
+                                color: currentStatus == 'completed'
+                                    ? primaryBlue
+                                    : coral,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
 
           const SizedBox(height: 25),

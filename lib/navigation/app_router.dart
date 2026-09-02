@@ -15,41 +15,70 @@ class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case '/':
-        return MaterialPageRoute(builder: (_) => const SplashScreen());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const SplashScreen(),
+        );
 
       case '/login':
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const LoginScreen(),
+        );
 
       case '/register':
-        return MaterialPageRoute(builder: (_) => const RegisterScreen());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const RegisterScreen(),
+        );
 
       case '/home':
-        return MaterialPageRoute(builder: (_) => const HomeScreen());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const HomeScreen(),
+        );
 
       case '/goal-selection':
-        return MaterialPageRoute(builder: (_) => const GoalSelectionScreen());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const GoalSelectionScreen(),
+        );
 
       case '/exercise-selection':
         return MaterialPageRoute(
+          settings: settings,
           builder: (_) => const ExerciseSelectionScreen(),
         );
 
       case '/difficulty':
-        return MaterialPageRoute(builder: (_) => const DifficultyScreen());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const DifficultyScreen(),
+        );
 
       case '/challenge-setup':
-        return MaterialPageRoute(builder: (_) => const ChallengeSetupScreen());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const ChallengeSetupScreen(),
+        );
 
       case '/challenge-confirmation':
         return MaterialPageRoute(
+          settings: settings,
           builder: (_) => const ChallengeConfirmationScreen(),
         );
 
       case '/workout':
-        return MaterialPageRoute(builder: (_) => const WorkoutScreen());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const WorkoutScreen(),
+        );
 
       default:
-        return MaterialPageRoute(builder: (_) => const SplashScreen());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const SplashScreen(),
+        );
     }
   }
 }

@@ -116,10 +116,6 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   }
 
   void _startWorkout() {
-    if (_cameraError) {
-      _showMessage('Camera is not available. Please check camera permission.');
-      return;
-    }
 
     setState(() {
       workoutState = 'In Progress';
@@ -207,9 +203,6 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   }
 
   void _exitWorkout() {
-    _workoutTimer?.cancel();
-    _repDemoTimer?.cancel();
-
     showDialog(
       context: context,
       builder: (context) {
@@ -220,26 +213,50 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           ),
           title: const Text(
             'Exit Workout?',
-            style: TextStyle(color: darkBlue, fontWeight: FontWeight.w800),
+            style: TextStyle(
+              color: darkBlue,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           content: const Text(
             'Are you sure you want to leave this workout?',
-            style: TextStyle(color: textBlue, fontSize: 13),
+            style: TextStyle(
+              color: textBlue,
+              fontSize: 13,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () {
+                // Just close the dialog.
+                // The workout timers keep running.
                 Navigator.pop(context);
               },
               child: const Text(
                 'Cancel',
-                style: TextStyle(color: textBlue, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: textBlue,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             ElevatedButton(
               onPressed: () {
+                // Stop the workout timers only after
+                // the user confirms the exit.
+                _workoutTimer?.cancel();
+                _repDemoTimer?.cancel();
+
+                // Close the confirmation dialog.
                 Navigator.pop(context);
-                Navigator.pop(context);
+
+                // Remove the entire challenge flow
+                // and return directly to Home.
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/home',
+                      (route) => false,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: coral,
@@ -983,7 +1000,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/home',
-                  (route) => false,
+                      (route) => false,
                 );
               },
               icon: const Icon(Icons.home_rounded, size: 21),
@@ -1032,11 +1049,11 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   }
 
   Widget _buildChallengeInfo(
-    String goal,
-    String exercise,
-    String difficulty,
-    int duration,
-  ) {
+      String goal,
+      String exercise,
+      String difficulty,
+      int duration,
+      ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(17),

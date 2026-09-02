@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
 
-class ChallengeConfirmationScreen extends StatelessWidget {
+import '../services/challenge_service.dart';
+
+class ChallengeConfirmationScreen extends StatefulWidget {
   const ChallengeConfirmationScreen({super.key});
 
+  @override
+  State<ChallengeConfirmationScreen> createState() =>
+      _ChallengeConfirmationScreenState();
+}
+
+class _ChallengeConfirmationScreenState
+    extends State<ChallengeConfirmationScreen> {
   static const Color backgroundColor = Color(0xFFF0FAFC);
   static const Color primaryBlue = Color(0xFF2CB8D1);
   static const Color lightBlue = Color(0xFFBDEEF4);
@@ -10,6 +19,58 @@ class ChallengeConfirmationScreen extends StatelessWidget {
   static const Color textBlue = Color(0xFF315B73);
   static const Color coral = Color(0xFFFF8585);
   static const Color softCoral = Color(0xFFFFE2E2);
+
+  final ChallengeService _challengeService = ChallengeService();
+
+  bool _isCreating = false;
+
+  Future<void> _startChallenge({
+    required String goal,
+    required String exercise,
+    required String difficulty,
+    required int duration,
+  }) async {
+    setState(() {
+      _isCreating = true;
+    });
+
+    try {
+      final challengeId = await _challengeService.createChallenge(
+        goal: goal,
+        exercise: exercise,
+        difficulty: difficulty,
+        duration: duration,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushNamed(
+        context,
+        '/workout',
+        arguments: {
+          'goal': goal,
+          'exercise': exercise,
+          'difficulty': difficulty,
+          'duration': duration,
+          'challengeId': challengeId,
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create challenge: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCreating = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +106,10 @@ class ChallengeConfirmationScreen extends StatelessWidget {
         centerTitle: true,
 
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: darkBlue),
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: darkBlue,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
 
@@ -63,7 +127,12 @@ class ChallengeConfirmationScreen extends StatelessWidget {
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
 
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 25),
+          padding: const EdgeInsets.fromLTRB(
+            20,
+            10,
+            20,
+            25,
+          ),
 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,7 +186,11 @@ class ChallengeConfirmationScreen extends StatelessWidget {
                   'Review your challenge details before starting.',
                   textAlign: TextAlign.center,
 
-                  style: TextStyle(color: textBlue, fontSize: 12, height: 1.4),
+                  style: TextStyle(
+                    color: textBlue,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
                 ),
               ),
 
@@ -210,7 +283,11 @@ class ChallengeConfirmationScreen extends StatelessWidget {
 
                 child: const Row(
                   children: [
-                    Icon(Icons.today_rounded, color: primaryBlue, size: 24),
+                    Icon(
+                      Icons.today_rounded,
+                      color: primaryBlue,
+                      size: 24,
+                    ),
 
                     SizedBox(width: 12),
 
@@ -240,12 +317,18 @@ class ChallengeConfirmationScreen extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(19),
 
-                  border: Border.all(color: coral.withOpacity(0.12)),
+                  border: Border.all(
+                    color: coral.withOpacity(0.12),
+                  ),
                 ),
 
                 child: const Row(
                   children: [
-                    Icon(Icons.favorite_rounded, color: coral, size: 24),
+                    Icon(
+                      Icons.favorite_rounded,
+                      color: coral,
+                      size: 24,
+                    ),
 
                     SizedBox(width: 12),
 
@@ -272,23 +355,22 @@ class ChallengeConfirmationScreen extends StatelessWidget {
                 height: 55,
 
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/workout',
-
-                      arguments: {
-                        'goal': goal,
-                        'exercise': exercise,
-                        'difficulty': difficulty,
-                        'duration': duration,
-                      },
+                  onPressed: _isCreating
+                      ? null
+                      : () {
+                    _startChallenge(
+                      goal: goal,
+                      exercise: exercise,
+                      difficulty: difficulty,
+                      duration: duration,
                     );
                   },
 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryBlue,
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                    primaryBlue.withOpacity(0.5),
                     elevation: 0,
 
                     shape: RoundedRectangleBorder(
@@ -296,11 +378,27 @@ class ChallengeConfirmationScreen extends StatelessWidget {
                     ),
                   ),
 
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: _isCreating
+                      ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor:
+                      AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
+                    ),
+                  )
+                      : const Row(
+                    mainAxisAlignment:
+                    MainAxisAlignment.center,
 
                     children: [
-                      Icon(Icons.play_arrow_rounded, size: 22),
+                      Icon(
+                        Icons.play_arrow_rounded,
+                        size: 22,
+                      ),
 
                       SizedBox(width: 8),
 
@@ -324,7 +422,9 @@ class ChallengeConfirmationScreen extends StatelessWidget {
                 height: 50,
 
                 child: TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _isCreating
+                      ? null
+                      : () => Navigator.pop(context),
 
                   child: const Text(
                     'Edit Challenge',
@@ -362,7 +462,11 @@ class ChallengeConfirmationScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
 
-          child: Icon(icon, color: iconColor, size: 23),
+          child: Icon(
+            icon,
+            color: iconColor,
+            size: 23,
+          ),
         ),
 
         const SizedBox(width: 13),
