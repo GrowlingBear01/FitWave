@@ -38,6 +38,8 @@ dependencies:
   firebase_auth: ^6.6.1
   cloud_firestore: ^6.9.0
   camera: ^0.12.0+2
+  pose_detection: ^3.7.0
+  camera_desktop: ^1.2.0
 
 dev_dependencies:
   flutter_test:

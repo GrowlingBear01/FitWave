@@ -1,7 +1,8 @@
 import 'dart:async';
-
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import '../services/ai_workout_service.dart';
+
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -20,14 +21,34 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   static const Color coral = Color(0xFFFF8585);
   static const Color softCoral = Color(0xFFFFE2E2);
 
+
+  String _getSelectedExercise() {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+
+    if (arguments is Map) {
+      return arguments['exercise']?.toString() ?? 'squat';
+    }
+
+    return 'squat';
+  }
+
   CameraController? _cameraController;
   Future<void>? _cameraInitialization;
+  List<CameraDescription> _availableCameras = [];
+  int _selectedCameraIndex = 0;
+
+  final AIWorkoutService _aiWorkoutService = AIWorkoutService();
+
+
+  bool _aiInitialized = false;
+  bool _isProcessingFrame = false;
 
   Timer? _workoutTimer;
   Timer? _repDemoTimer;
 
   int _elapsedSeconds = 0;
   int _reps = 0;
+  bool _workoutVerified = false;
 
   String workoutState = 'Ready';
   String aiStatus = 'AI Ready';
@@ -41,15 +62,54 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-
+    _initializeAI();
     _initializeCamera();
   }
 
-  Future<void> _initializeCamera() async {
+  Future<void> _initializeAI() async {
     try {
-      final cameras = await availableCameras();
+      await _aiWorkoutService.initialize();
 
-      if (cameras.isEmpty) {
+      if (!mounted) return;
+
+      setState(() {
+        _aiInitialized = true;
+        aiStatus = 'AI Ready';
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _aiInitialized = false;
+        aiStatus = 'AI Unavailable';
+      });
+
+      debugPrint('AI initialization error: $e');
+    }
+  }
+
+  Future<void> _initializeCamera({int? cameraIndex}) async {
+    try {
+      final oldController = _cameraController;
+
+      if (oldController != null) {
+        if (oldController.value.isStreamingImages) {
+          await oldController.stopImageStream();
+        }
+
+        if (mounted) {
+          setState(() {
+            _cameraController = null;
+            _cameraInitialization = null;
+          });
+        }
+
+        await oldController.dispose();
+      }
+
+      _availableCameras = await availableCameras();
+
+      if (_availableCameras.isEmpty) {
         if (!mounted) return;
 
         setState(() {
@@ -60,14 +120,19 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         return;
       }
 
-      CameraDescription selectedCamera = cameras.first;
-
-      for (final camera in cameras) {
-        if (camera.lensDirection == CameraLensDirection.front) {
-          selectedCamera = camera;
-          break;
+      if (cameraIndex != null && cameraIndex < _availableCameras.length) {
+        _selectedCameraIndex = cameraIndex;
+      } else {
+        _selectedCameraIndex = 0;
+        for (int i = 0; i < _availableCameras.length; i++) {
+          if (_availableCameras[i].lensDirection == CameraLensDirection.front) {
+            _selectedCameraIndex = i;
+            break;
+          }
         }
       }
+
+      final selectedCamera = _availableCameras[_selectedCameraIndex];
 
       final controller = CameraController(
         selectedCamera,
@@ -79,6 +144,18 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       _cameraInitialization = controller.initialize();
 
       await _cameraInitialization;
+
+      // Automatically activate the widest view (ultra-wide 0.5x if supported by device)
+      try {
+        final minZoom = await controller.getMinZoomLevel();
+        await controller.setZoomLevel(minZoom);
+      } catch (e) {
+        debugPrint('Wide view / zoom level adjustment error: $e');
+      }
+
+      if (workoutState == 'In Progress' && _aiInitialized) {
+        await _startAIFrameProcessing();
+      }
 
       if (!mounted) return;
 
@@ -102,6 +179,85 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     }
   }
 
+  Future<void> _switchCamera() async {
+    if (_availableCameras.isEmpty) {
+      _availableCameras = await availableCameras();
+    }
+
+    if (_availableCameras.length <= 1) {
+      _showMessage('No other camera available on this device.');
+      return;
+    }
+
+    final nextIndex = (_selectedCameraIndex + 1) % _availableCameras.length;
+    await _initializeCamera(cameraIndex: nextIndex);
+  }
+
+  Future<void> _startAIFrameProcessing() async {
+    final controller = _cameraController;
+
+    if (controller == null || !controller.value.isInitialized) {
+      debugPrint('Camera is not initialized.');
+      return;
+    }
+
+    if (!_aiInitialized) {
+      debugPrint('AI is not initialized.');
+      return;
+    }
+
+    if (controller.value.isStreamingImages) {
+      return;
+    }
+
+    await controller.startImageStream((CameraImage image) async {
+      if (_isProcessingFrame) {
+        return;
+      }
+
+      _isProcessingFrame = true;
+
+      try {
+        final poses = await _aiWorkoutService.detectFromCameraImage(image);
+
+        if (poses.isNotEmpty) {
+          final pose = poses.first;
+
+          final result = _aiWorkoutService.analyzeExercise(
+            exercise: _getSelectedExercise(),
+            pose: pose,
+          );
+
+          debugPrint(
+            'Exercise: ${result.exercise}, '
+                'Reps: ${result.reps}, '
+                'Form: ${result.formMessage}, '
+                'Confidence: ${result.confidence}',
+          );
+
+          if (mounted) {
+            setState(() {
+              _reps = result.reps;
+              aiStatus = 'Pose Detected';
+              formStatus = result.formMessage;
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              aiStatus = 'Looking for Person';
+              formStatus = 'Waiting';
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('AI frame processing error: $e');
+      } finally {
+        _isProcessingFrame = false;
+      }
+    });
+  }
+
   String _cameraErrorText(CameraException error) {
     switch (error.code) {
       case 'CameraAccessDenied':
@@ -115,16 +271,28 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     }
   }
 
-  void _startWorkout() {
-
+  Future<void> _startWorkout() async {
     setState(() {
       workoutState = 'In Progress';
       aiStatus = 'Checking Form';
-      formStatus = 'Correct Form';
+      formStatus = 'Waiting';
     });
-
+    _aiWorkoutService.resetExercise(
+      _getSelectedExercise(),
+    );
     _startTimer();
-    _startDemoRepCounter();
+
+    try {
+      await _startAIFrameProcessing();
+    } catch (e) {
+      debugPrint('Failed to start AI processing: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        aiStatus = 'AI Unavailable';
+      });
+    }
   }
 
   void _startTimer() {
@@ -170,17 +338,36 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     });
 
     _startTimer();
-    _startDemoRepCounter();
   }
 
-  void _stopWorkout() {
+  Future<void> _stopWorkout() async {
     _workoutTimer?.cancel();
     _repDemoTimer?.cancel();
 
+    final controller = _cameraController;
+
+    if (controller != null && controller.value.isStreamingImages) {
+      try {
+        await controller.stopImageStream();
+      } catch (e) {
+        debugPrint('Failed to stop AI camera stream: $e');
+      }
+    }
+
+    _workoutVerified = _reps > 0;
+
+    if (!mounted) return;
+
     setState(() {
       workoutState = 'Completed';
-      aiStatus = 'Workout Verified';
-      formStatus = 'Completed';
+
+      if (_workoutVerified) {
+        aiStatus = 'Workout Verified';
+        formStatus = 'Completed';
+      } else {
+        aiStatus = 'Workout Not Verified';
+        formStatus = 'No reps detected';
+      }
     });
   }
 
@@ -273,16 +460,17 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _cameraController;
-
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
-
     if (state == AppLifecycleState.inactive) {
-      controller.dispose();
+      final controller = _cameraController;
+
+      if (controller != null) {
+        _cameraController = null;
+        _cameraInitialization = null;
+
+        controller.dispose();
+      }
     } else if (state == AppLifecycleState.resumed) {
-      _initializeCamera();
+      _initializeCamera(cameraIndex: _selectedCameraIndex);
     }
   }
 
@@ -294,6 +482,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     _repDemoTimer?.cancel();
 
     _cameraController?.dispose();
+    _aiWorkoutService.dispose();
 
     super.dispose();
   }
@@ -403,7 +592,20 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
           Positioned(top: 14, left: 14, child: _cameraLabel()),
 
-          Positioned(top: 14, right: 14, child: _aiLiveBadge()),
+          Positioned(
+            top: 14,
+            right: 14,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_availableCameras.length > 1) ...[
+                  _switchCameraButton(),
+                  const SizedBox(width: 8),
+                ],
+                _aiLiveBadge(),
+              ],
+            ),
+          ),
 
           if (workoutState == 'In Progress')
             Positioned(bottom: 14, left: 14, child: _liveBadge()),
@@ -448,7 +650,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: _initializeCamera,
+                  onPressed: () =>
+                      _initializeCamera(cameraIndex: _selectedCameraIndex),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryBlue,
                     foregroundColor: Colors.white,
@@ -509,21 +712,70 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     );
   }
 
+  Widget _switchCameraButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _switchCamera,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.55),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cameraswitch_rounded, color: Colors.white, size: 15),
+              SizedBox(width: 4),
+              Text(
+                'Switch',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _cameraLabel() {
+    String label = 'Camera';
+    if (_availableCameras.isNotEmpty &&
+        _selectedCameraIndex < _availableCameras.length) {
+      final cam = _availableCameras[_selectedCameraIndex];
+      switch (cam.lensDirection) {
+        case CameraLensDirection.front:
+          label = 'Front Cam';
+          break;
+        case CameraLensDirection.back:
+          label = 'Back Cam';
+          break;
+        case CameraLensDirection.external:
+          label = 'USB / Ext Cam';
+          break;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.55),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.camera_alt_rounded, color: Colors.white, size: 15),
-          SizedBox(width: 6),
+          const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 15),
+          const SizedBox(width: 6),
           Text(
-            'Camera',
-            style: TextStyle(
+            label,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -703,13 +955,15 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     final bool completed = workoutState == 'Completed';
 
     final Color color = completed
-        ? Colors.green
+        ? (_workoutVerified ? Colors.green : coral)
         : active
         ? primaryBlue
         : darkBlue;
 
     final Color background = completed
+        ? (_workoutVerified
         ? Colors.green.withOpacity(0.10)
+        : softCoral)
         : active
         ? lightBlue
         : const Color(0xFFF4F8F9);
@@ -732,7 +986,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
             ),
             child: Icon(
               completed
+                  ? (_workoutVerified
                   ? Icons.verified_rounded
+                  : Icons.error_rounded)
                   : active
                   ? Icons.smart_toy_rounded
                   : Icons.smart_toy_outlined,
@@ -957,30 +1213,42 @@ class _WorkoutScreenState extends State<WorkoutScreen>
             width: 70,
             height: 70,
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.10),
+              color: _workoutVerified
+                  ? Colors.green.withOpacity(0.10)
+                  : softCoral,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.emoji_events_rounded,
-              color: Colors.green,
+            child: Icon(
+              _workoutVerified
+                  ? Icons.emoji_events_rounded
+                  : Icons.error_outline_rounded,
+              color: _workoutVerified ? Colors.green : coral,
               size: 38,
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Workout Completed!',
+          Text(
+            _workoutVerified
+                ? 'Workout Completed!'
+                : 'Workout Not Verified',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: darkBlue,
+              color: _workoutVerified ? darkBlue : coral,
               fontSize: 22,
               fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 7),
-          const Text(
-            'Great job! Your workout has been verified by the AI system.',
+          Text(
+            _workoutVerified
+                ? 'Great job! Your workout has been verified by the AI system.'
+                : 'No valid reps were detected. Try again with your full body visible.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: textBlue, fontSize: 12, height: 1.4),
+            style: const TextStyle(
+              color: textBlue,
+              fontSize: 12,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 18),
           Row(
