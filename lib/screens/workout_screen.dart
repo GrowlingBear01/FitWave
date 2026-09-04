@@ -2,7 +2,8 @@ import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import '../services/ai_workout_service.dart';
-
+import '../services/workout_service.dart';
+import '../services/challenge_service.dart';
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -38,7 +39,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   int _selectedCameraIndex = 0;
 
   final AIWorkoutService _aiWorkoutService = AIWorkoutService();
-
+  final WorkoutService _workoutService = WorkoutService();
+  final ChallengeService _challengeService = ChallengeService();
 
   bool _aiInitialized = false;
   bool _isProcessingFrame = false;
@@ -356,6 +358,43 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
     _workoutVerified = _reps > 0;
 
+    // Save the workout only when AI verification succeeds.
+    if (_workoutVerified) {
+      try {
+        final arguments = ModalRoute.of(context)?.settings.arguments;
+
+        String challengeId = '';
+        String exercise = _getSelectedExercise();
+
+        if (arguments is Map) {
+          challengeId = arguments['challengeId']?.toString() ?? '';
+          exercise = arguments['exercise']?.toString() ?? exercise;
+        }
+
+        if (challengeId.isEmpty) {
+          debugPrint('Workout not saved: challengeId is missing.');
+        } else {
+          await _workoutService.saveWorkout(
+            challengeId: challengeId,
+            exercise: exercise,
+            reps: _reps,
+            durationSeconds: _elapsedSeconds,
+            verified: true,
+          );
+          await _challengeService.updateChallengeFromWorkouts(
+            challengeId,
+          );
+          await _challengeService.checkChallengeStatus(
+            challengeId,
+          );
+
+          debugPrint('Verified workout saved successfully.');
+        }
+      } catch (e) {
+        debugPrint('Failed to save workout: $e');
+      }
+    }
+
     if (!mounted) return;
 
     setState(() {
@@ -370,6 +409,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       }
     });
   }
+
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(

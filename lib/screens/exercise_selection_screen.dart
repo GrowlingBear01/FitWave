@@ -19,6 +19,11 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
 
   final List<Map<String, dynamic>> exercises = [
     {
+      'title': 'Squat',
+      'subtitle': 'AI-powered squat workout',
+      'icon': Icons.fitness_center_rounded,
+    },
+    {
       'title': 'Full Body',
       'subtitle': 'Complete full body workout',
       'icon': Icons.accessibility_new_rounded,

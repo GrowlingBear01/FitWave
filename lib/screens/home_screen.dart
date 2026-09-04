@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'profile_screen.dart';
-import '../services/auth_service.dart';
 import '../services/challenge_service.dart';
 import '../models/challenge.dart';
+import '../models/workout.dart';
+import '../services/workout_service.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   final ChallengeService _challengeService = ChallengeService();
+  final WorkoutService _workoutService = WorkoutService();
 
   int _selectedIndex = 0;
 
@@ -48,6 +50,8 @@ class _HomeScreenState extends State<HomeScreen>
     );
 
     _animationController.forward();
+
+    _checkActiveChallenge();
   }
 
   @override
@@ -91,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   final String userName = 'User';
 
-  final int streak = 0;
+
 
   final int walletCoins = 00;
 
@@ -134,6 +138,37 @@ class _HomeScreenState extends State<HomeScreen>
 
       bottomNavigationBar: _buildBottomNavigation(),
     );
+  }
+
+  Future<void> _checkActiveChallenge() async {
+    try {
+      final challenges =
+      await _challengeService.getUserChallenges().first;
+
+      if (challenges.isEmpty) {
+        return;
+      }
+
+      // Find the active challenge.
+      final activeChallenges = challenges.where(
+            (challenge) => challenge.status == 'active',
+      );
+
+      if (activeChallenges.isEmpty) {
+        return;
+      }
+
+      // Use the most recent active challenge.
+      final challenge = activeChallenges.last;
+
+      await _challengeService.checkChallengeStatus(
+        challenge.id,
+      );
+    } catch (e) {
+      debugPrint(
+        'Failed to check challenge status: $e',
+      );
+    }
   }
 
   // ============================================================
@@ -253,130 +288,122 @@ class _HomeScreenState extends State<HomeScreen>
           // ======================================================
           // STREAK CARD
           // ======================================================
-          animatedItem(
-            index: 1,
+          FutureBuilder<int>(
+            future: _challengeService.getCurrentStreak(),
+            builder: (context, snapshot) {
+              final int streak = snapshot.data ?? 0;
 
-            child: Container(
-              width: double.infinity,
-
-              padding: const EdgeInsets.all(20),
-
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-
-                  colors: [Color(0xFF2CB8D1), Color(0xFF58C9DA)],
-                ),
-
-                borderRadius: BorderRadius.circular(24),
-
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryBlue.withOpacity(0.22),
-                    blurRadius: 20,
-                    offset: const Offset(0, 9),
-                  ),
-                ],
-              ),
-
-              child: Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.20),
-                      shape: BoxShape.circle,
+              return animatedItem(
+                index: 1,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF2CB8D1),
+                        Color(0xFF58C9DA),
+                      ],
                     ),
-
-                    child: const Icon(
-                      Icons.local_fire_department_rounded,
-                      color: Colors.white,
-                      size: 34,
-                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryBlue.withOpacity(0.22),
+                        blurRadius: 20,
+                        offset: const Offset(0, 9),
+                      ),
+                    ],
                   ),
-
-                  const SizedBox(width: 16),
-
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-
-                      children: [
-                        const Text(
-                          'Current Streak',
-
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.20),
+                          shape: BoxShape.circle,
                         ),
+                        child: const Icon(
+                          Icons.local_fire_department_rounded,
+                          color: Colors.white,
+                          size: 34,
+                        ),
+                      ),
 
-                        const SizedBox(height: 2),
+                      const SizedBox(width: 16),
 
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '$streak',
-
-                              style: const TextStyle(
+                            const Text(
+                              'Current Streak',
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 31,
-                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
 
-                            const SizedBox(width: 5),
+                            const SizedBox(height: 2),
 
-                            const Padding(
-                              padding: EdgeInsets.only(bottom: 5),
-
-                              child: Text(
-                                'days 🔥',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '$streak',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 31,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
-                              ),
+
+                                const SizedBox(width: 5),
+
+                                const Padding(
+                                  padding: EdgeInsets.only(bottom: 5),
+                                  child: Text(
+                                    'days 🔥',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 11,
-                      vertical: 8,
-                    ),
-
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-
-                    child: const Text(
-                      '+1 today',
-                      style: TextStyle(
-                        color: primaryBlue,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
 
-          const SizedBox(height: 25),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          streak > 0 ? 'Done today ✓' : 'Start today',
+                          style: const TextStyle(
+                            color: primaryBlue,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
 
           // ======================================================
           // SECTION TITLE
@@ -642,167 +669,220 @@ class _HomeScreenState extends State<HomeScreen>
                 );
               }
 
-              // For now, display the most recent challenge.
+              // Display the most recent challenge.
               final challenge = challenges.last;
 
-              final currentProgress =
-              _challengeService.calculateProgress(challenge);
-
-              final currentStatus =
-              _challengeService.calculateStatus(challenge);
-
-              final progressPercentage =
-              (currentProgress * 100).round();
-
-              final totalDays = challenge.duration;
-
-              final completedDays =
-              (currentProgress * totalDays).floor();
-
-              final daysRemaining =
-              (totalDays - completedDays).clamp(0, totalDays);
-
-              return animatedItem(
-                index: 5,
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/workout',
-                      arguments: {
-                        'goal': challenge.goal,
-                        'exercise': challenge.exercise,
-                        'difficulty': challenge.difficulty,
-                        'duration': challenge.duration,
-                        'challengeId': challenge.id,
-                      },
-                    );
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(19),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                        color: primaryBlue.withOpacity(0.13),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: darkBlue.withOpacity(0.055),
-                          blurRadius: 18,
-                          offset: const Offset(0, 7),
+              return FutureBuilder<double>(
+                future: _challengeService.calculateProgress(challenge),
+                builder: (context, progressSnapshot) {
+                  if (progressSnapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return animatedItem(
+                      index: 5,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(25),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 45,
-                              height: 45,
-                              decoration: BoxDecoration(
-                                color: softCoral,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Icon(
-                                Icons.emoji_events_rounded,
-                                color: coral,
-                                size: 25,
-                              ),
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (progressSnapshot.hasError) {
+                    return animatedItem(
+                      index: 5,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        child: const Text(
+                          'Unable to load challenge progress.',
+                          style: TextStyle(
+                            color: textBlue,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  final currentProgress =
+                      progressSnapshot.data ?? 0.0;
+
+                  final currentStatus = challenge.status;
+
+                  final progressPercentage =
+                  (currentProgress * 100).round();
+
+                  final totalDays = challenge.duration;
+
+                  final completedDays =
+                  (currentProgress * totalDays).round();
+
+                  final daysRemaining =
+                  (totalDays - completedDays).clamp(0, totalDays);
+
+                  return animatedItem(
+                      index: 5,
+                      child: GestureDetector(
+                        onTap: currentStatus == 'failed' ||
+                            currentStatus == 'completed'
+                            ? null
+                            : () {
+                          Navigator.pushNamed(
+                            context,
+                            '/workout',
+                            arguments: {
+                              'goal': challenge.goal,
+                              'exercise': challenge.exercise,
+                              'difficulty': challenge.difficulty,
+                              'duration': challenge.duration,
+                              'challengeId': challenge.id,
+                            },
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(19),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                              color: primaryBlue.withOpacity(0.13),
                             ),
-
-                            const SizedBox(width: 12),
-
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            boxShadow: [
+                              BoxShadow(
+                                color: darkBlue.withOpacity(0.055),
+                                blurRadius: 18,
+                                offset: const Offset(0, 7),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Text(
-                                    '${challenge.duration} Day ${challenge.goal} Challenge',
-                                    style: const TextStyle(
-                                      color: darkBlue,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
+                                  Container(
+                                    width: 45,
+                                    height: 45,
+                                    decoration: BoxDecoration(
+                                      color: softCoral,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: const Icon(
+                                      Icons.emoji_events_rounded,
+                                      color: coral,
+                                      size: 25,
                                     ),
                                   ),
 
-                                  const SizedBox(height: 3),
+                                  const SizedBox(width: 12),
+
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${challenge.duration} Day ${challenge.goal} Challenge',
+                                          style: const TextStyle(
+                                            color: darkBlue,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+
+                                        const SizedBox(height: 3),
+
+                                        Text(
+                                          '${challenge.exercise} • ${challenge.difficulty}',
+                                          style: const TextStyle(
+                                            color: textBlue,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
 
                                   Text(
-                                    '${challenge.exercise} • ${challenge.difficulty}',
-                                    style: const TextStyle(
-                                      color: textBlue,
-                                      fontSize: 11,
+                                    '$progressPercentage%',
+                                    style: TextStyle(
+                                      color: currentStatus == 'failed'
+                                          ? coral
+                                          : primaryBlue,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w900,
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
 
-                            Text(
-                              '$progressPercentage%',
-                              style: const TextStyle(
-                                color: primaryBlue,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
+                              const SizedBox(height: 17),
+
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: LinearProgressIndicator(
+                                  value: currentProgress,
+                                  minHeight: 9,
+                                  backgroundColor:
+                                  const Color(0xFFE5F3F6),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    currentStatus == 'failed'
+                                        ? coral
+                                        : primaryBlue,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
 
-                        const SizedBox(height: 17),
+                              const SizedBox(height: 9),
 
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: LinearProgressIndicator(
-                            value: currentProgress,
-                            minHeight: 9,
-                            backgroundColor:
-                            const Color(0xFFE5F3F6),
-                            valueColor:
-                            const AlwaysStoppedAnimation<Color>(
-                              primaryBlue,
-                            ),
+                              Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '$completedDays of $totalDays days completed',
+                                    style: const TextStyle(
+                                      color: textBlue,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+
+                                  Text(
+                                    currentStatus == 'failed'
+                                        ? 'Challenge failed'
+                                        : currentStatus == 'completed'
+                                        ? 'Completed'
+                                        : '$daysRemaining days left',
+                                    style: TextStyle(
+                                      color: currentStatus == 'failed'
+                                          ? coral
+                                          : currentStatus == 'completed'
+                                          ? primaryBlue
+                                          : coral,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-
-                        const SizedBox(height: 9),
-
-                        Row(
-                          mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '$completedDays of $totalDays days completed',
-                              style: const TextStyle(
-                                color: textBlue,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-
-                            Text(
-                              currentStatus == 'completed'
-                                  ? 'Completed'
-                                  : '$daysRemaining days left',
-                              style: TextStyle(
-                                color: currentStatus == 'completed'
-                                    ? primaryBlue
-                                    : coral,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                      ),
+                    );
+                },
               );
             },
           ),
@@ -828,43 +908,60 @@ class _HomeScreenState extends State<HomeScreen>
 
           const SizedBox(height: 10),
 
-          animatedItem(
-            index: 7,
+          FutureBuilder<List<Workout>>(
+            future: _workoutService.getVerifiedWorkouts(),
+            builder: (context, snapshot) {
+              final workouts = snapshot.data ?? [];
 
-            child: Row(
-              children: [
-                Expanded(
-                  child: _statCard(
-                    icon: Icons.check_circle_outline_rounded,
-                    value: '24',
-                    label: 'Workouts',
-                    iconColor: primaryBlue,
-                  ),
+              final totalSeconds = workouts.fold<int>(
+                0,
+                    (sum, workout) => sum + workout.durationSeconds,
+              );
+
+              final totalMinutes = totalSeconds ~/ 60;
+
+              final activeTime = totalMinutes >= 60
+                  ? '${(totalMinutes / 60).toStringAsFixed(1)}h'
+                  : '${totalMinutes}m';
+
+              return animatedItem(
+                index: 7,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _statCard(
+                        icon: Icons.check_circle_outline_rounded,
+                        value: '${workouts.length}',
+                        label: 'Workouts',
+                        iconColor: primaryBlue,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: _statCard(
+                        icon: Icons.timer_outlined,
+                        value: activeTime,
+                        label: 'Active Time',
+                        iconColor: coral,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: _statCard(
+                        icon: Icons.local_fire_department_outlined,
+                        value: '—',
+                        label: 'Calories',
+                        iconColor: darkBlue,
+                      ),
+                    ),
+                  ],
                 ),
-
-                const SizedBox(width: 12),
-
-                Expanded(
-                  child: _statCard(
-                    icon: Icons.timer_outlined,
-                    value: '8.5h',
-                    label: 'Active Time',
-                    iconColor: coral,
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                Expanded(
-                  child: _statCard(
-                    icon: Icons.local_fire_department_outlined,
-                    value: '3.2k',
-                    label: 'Calories',
-                    iconColor: darkBlue,
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
 
           const SizedBox(height: 25),
