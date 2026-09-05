@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'profile_screen.dart';
+import 'progress_screen.dart';
+import 'challenges_screen.dart';
+import 'wallet_screen.dart';
+
 import '../services/challenge_service.dart';
 import '../models/challenge.dart';
 import '../models/workout.dart';
 import '../services/workout_service.dart';
-
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +20,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
+
   final ChallengeService _challengeService = ChallengeService();
   final WorkoutService _workoutService = WorkoutService();
 
@@ -40,6 +44,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   static const Color softCoral = Color(0xFFFFE2E2);
 
+  // ============================================================
+  // INIT
+  // ============================================================
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +62,10 @@ class _HomeScreenState extends State<HomeScreen>
     _checkActiveChallenge();
   }
 
+  // ============================================================
+  // DISPOSE
+  // ============================================================
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -61,10 +73,46 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ============================================================
+  // CHECK ACTIVE CHALLENGE
+  // ============================================================
+
+  Future<void> _checkActiveChallenge() async {
+    try {
+      final challenges =
+      await _challengeService.getUserChallenges().first;
+
+      if (challenges.isEmpty) {
+        return;
+      }
+
+      final activeChallenges = challenges.where(
+            (challenge) => challenge.status == 'active',
+      );
+
+      if (activeChallenges.isEmpty) {
+        return;
+      }
+
+      final challenge = activeChallenges.last;
+
+      await _challengeService.checkChallengeStatus(
+        challenge.id,
+      );
+    } catch (e) {
+      debugPrint(
+        'Failed to check challenge status: $e',
+      );
+    }
+  }
+
+  // ============================================================
   // ANIMATION
   // ============================================================
 
-  Widget animatedItem({required Widget child, required int index}) {
+  Widget animatedItem({
+    required Widget child,
+    required int index,
+  }) {
     final animation = CurvedAnimation(
       parent: _animationController,
       curve: Interval(
@@ -81,7 +129,10 @@ class _HomeScreenState extends State<HomeScreen>
         return Opacity(
           opacity: animation.value,
           child: Transform.translate(
-            offset: Offset(0, 20 * (1 - animation.value)),
+            offset: Offset(
+              0,
+              20 * (1 - animation.value),
+            ),
             child: child,
           ),
         );
@@ -95,9 +146,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   final String userName = 'User';
 
-
-
-  final int walletCoins = 00;
+  final int walletCoins = 0;
 
   // ============================================================
   // SNACKBAR
@@ -106,10 +155,14 @@ class _HomeScreenState extends State<HomeScreen>
   void showComingSoon(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$feature will be connected soon.'),
+        content: Text(
+          '$feature will be connected soon.',
+        ),
         behavior: SnackBarBehavior.floating,
         backgroundColor: darkBlue,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
       ),
     );
   }
@@ -128,9 +181,13 @@ class _HomeScreenState extends State<HomeScreen>
           index: _selectedIndex,
           children: [
             _buildHomeContent(),
-            _buildPlaceholder('Challenges', Icons.emoji_events_outlined),
-            _buildPlaceholder('Progress', Icons.show_chart_rounded),
-            _buildPlaceholder('Wallet', Icons.account_balance_wallet_outlined),
+
+            const ChallengesScreen(),
+
+            const ProgressScreen(),
+
+            const WalletScreen(),
+
             const ProfileScreen(),
           ],
         ),
@@ -138,37 +195,6 @@ class _HomeScreenState extends State<HomeScreen>
 
       bottomNavigationBar: _buildBottomNavigation(),
     );
-  }
-
-  Future<void> _checkActiveChallenge() async {
-    try {
-      final challenges =
-      await _challengeService.getUserChallenges().first;
-
-      if (challenges.isEmpty) {
-        return;
-      }
-
-      // Find the active challenge.
-      final activeChallenges = challenges.where(
-            (challenge) => challenge.status == 'active',
-      );
-
-      if (activeChallenges.isEmpty) {
-        return;
-      }
-
-      // Use the most recent active challenge.
-      final challenge = activeChallenges.last;
-
-      await _challengeService.checkChallengeStatus(
-        challenge.id,
-      );
-    } catch (e) {
-      debugPrint(
-        'Failed to check challenge status: $e',
-      );
-    }
   }
 
   // ============================================================
@@ -179,7 +205,12 @@ class _HomeScreenState extends State<HomeScreen>
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
 
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 25),
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        18,
+        20,
+        25,
+      ),
 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,12 +219,12 @@ class _HomeScreenState extends State<HomeScreen>
           // ======================================================
           // TOP BAR
           // ======================================================
+
           animatedItem(
             index: 0,
 
             child: Row(
               children: [
-                // Small FitWave wave icon
                 Container(
                   width: 48,
                   height: 48,
@@ -222,7 +253,8 @@ class _HomeScreenState extends State<HomeScreen>
 
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                    CrossAxisAlignment.start,
 
                     children: [
                       Text(
@@ -239,20 +271,24 @@ class _HomeScreenState extends State<HomeScreen>
 
                       const Text(
                         'Ready to move today?',
-                        style: TextStyle(color: textBlue, fontSize: 12),
+                        style: TextStyle(
+                          color: textBlue,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                 ),
 
-                // Notification
+                // Notification Button
                 Container(
                   width: 44,
                   height: 44,
 
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius:
+                    BorderRadius.circular(14),
 
                     boxShadow: [
                       BoxShadow(
@@ -265,7 +301,10 @@ class _HomeScreenState extends State<HomeScreen>
 
                   child: IconButton(
                     onPressed: () {
-                      showComingSoon('Notifications');
+                      Navigator.pushNamed(
+                        context,
+                        '/notifications',
+                      );
                     },
 
                     icon: const Icon(
@@ -277,8 +316,6 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
 
                 const SizedBox(width: 10),
-
-
               ],
             ),
           ),
@@ -288,131 +325,197 @@ class _HomeScreenState extends State<HomeScreen>
           // ======================================================
           // STREAK CARD
           // ======================================================
+
           FutureBuilder<int>(
             future: _challengeService.getCurrentStreak(),
+
             builder: (context, snapshot) {
-              final int streak = snapshot.data ?? 0;
+              final int streak =
+                  snapshot.data ?? 0;
 
               return animatedItem(
                 index: 1,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF2CB8D1),
-                        Color(0xFF58C9DA),
+
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/streak',
+                    );
+                  },
+
+                  child: Container(
+                    width: double.infinity,
+
+                    padding:
+                    const EdgeInsets.all(20),
+
+                    decoration: BoxDecoration(
+                      gradient:
+                      const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+
+                        colors: [
+                          Color(0xFF2CB8D1),
+                          Color(0xFF58C9DA),
+                        ],
+                      ),
+
+                      borderRadius:
+                      BorderRadius.circular(24),
+
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                          primaryBlue.withOpacity(
+                            0.22,
+                          ),
+                          blurRadius: 20,
+                          offset:
+                          const Offset(0, 9),
+                        ),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: primaryBlue.withOpacity(0.22),
-                        blurRadius: 20,
-                        offset: const Offset(0, 9),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.20),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.local_fire_department_rounded,
-                          color: Colors.white,
-                          size: 34,
-                        ),
-                      ),
 
-                      const SizedBox(width: 16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
 
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Current Streak',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                          decoration:
+                          BoxDecoration(
+                            color: Colors.white
+                                .withOpacity(0.20),
+                            shape: BoxShape.circle,
+                          ),
 
-                            const SizedBox(height: 2),
-
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '$streak',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 31,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-
-                                const SizedBox(width: 5),
-
-                                const Padding(
-                                  padding: EdgeInsets.only(bottom: 5),
-                                  child: Text(
-                                    'days 🔥',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 11,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          streak > 0 ? 'Done today ✓' : 'Start today',
-                          style: const TextStyle(
-                            color: primaryBlue,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
+                          child: const Icon(
+                            Icons
+                                .local_fire_department_rounded,
+                            color: Colors.white,
+                            size: 34,
                           ),
                         ),
-                      ),
-                    ],
+
+                        const SizedBox(width: 16),
+
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
+
+                            children: [
+                              const Text(
+                                'Current Streak',
+
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight:
+                                  FontWeight.w500,
+                                ),
+                              ),
+
+                              const SizedBox(height: 2),
+
+                              Row(
+                                crossAxisAlignment:
+                                CrossAxisAlignment
+                                    .end,
+
+                                children: [
+                                  Text(
+                                    '$streak',
+
+                                    style:
+                                    const TextStyle(
+                                      color:
+                                      Colors.white,
+                                      fontSize: 31,
+                                      fontWeight:
+                                      FontWeight.w900,
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 5),
+
+                                  const Padding(
+                                    padding:
+                                    EdgeInsets.only(
+                                      bottom: 5,
+                                    ),
+
+                                    child: Text(
+                                      'days 🔥',
+
+                                      style: TextStyle(
+                                        color:
+                                        Colors.white,
+                                        fontSize: 13,
+                                        fontWeight:
+                                        FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Container(
+                          padding:
+                          const EdgeInsets
+                              .symmetric(
+                            horizontal: 11,
+                            vertical: 8,
+                          ),
+
+                          decoration:
+                          BoxDecoration(
+                            color: Colors.white,
+                            borderRadius:
+                            BorderRadius.circular(
+                              12,
+                            ),
+                          ),
+
+                          child: Text(
+                            streak > 0
+                                ? 'Done today ✓'
+                                : 'Start today',
+
+                            style: const TextStyle(
+                              color: primaryBlue,
+                              fontSize: 11,
+                              fontWeight:
+                              FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
             },
           ),
 
+          const SizedBox(height: 25),
+
           // ======================================================
-          // SECTION TITLE
+          // TODAY'S WORKOUT TITLE
           // ======================================================
+
           animatedItem(
             index: 2,
 
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment:
+              MainAxisAlignment.spaceBetween,
 
               children: [
                 const Text(
@@ -427,15 +530,20 @@ class _HomeScreenState extends State<HomeScreen>
 
                 TextButton(
                   onPressed: () {
-                    showComingSoon('Workout section');
+                    Navigator.pushNamed(
+                      context,
+                      '/workout',
+                    );
                   },
 
                   child: const Text(
                     'View all',
+
                     style: TextStyle(
                       color: primaryBlue,
                       fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontWeight:
+                      FontWeight.w700,
                     ),
                   ),
                 ),
@@ -448,25 +556,32 @@ class _HomeScreenState extends State<HomeScreen>
           // ======================================================
           // WORKOUT CARD
           // ======================================================
+
           animatedItem(
             index: 3,
 
             child: GestureDetector(
               onTap: () {
-                showComingSoon('Workout');
+                Navigator.pushNamed(
+                  context,
+                  '/workout',
+                );
               },
 
               child: Container(
-                padding: const EdgeInsets.all(17),
+                padding:
+                const EdgeInsets.all(17),
 
                 decoration: BoxDecoration(
                   color: Colors.white,
 
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius:
+                  BorderRadius.circular(22),
 
                   boxShadow: [
                     BoxShadow(
-                      color: darkBlue.withOpacity(0.07),
+                      color:
+                      darkBlue.withOpacity(0.07),
                       blurRadius: 18,
                       offset: const Offset(0, 7),
                     ),
@@ -481,11 +596,15 @@ class _HomeScreenState extends State<HomeScreen>
 
                       decoration: BoxDecoration(
                         color: lightBlue,
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius:
+                        BorderRadius.circular(
+                          18,
+                        ),
                       ),
 
                       child: const Icon(
-                        Icons.fitness_center_rounded,
+                        Icons
+                            .fitness_center_rounded,
                         color: darkBlue,
                         size: 29,
                       ),
@@ -495,7 +614,8 @@ class _HomeScreenState extends State<HomeScreen>
 
                     const Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
 
                         children: [
                           Text(
@@ -504,7 +624,8 @@ class _HomeScreenState extends State<HomeScreen>
                             style: TextStyle(
                               color: darkBlue,
                               fontSize: 16,
-                              fontWeight: FontWeight.w800,
+                              fontWeight:
+                              FontWeight.w800,
                             ),
                           ),
 
@@ -513,23 +634,32 @@ class _HomeScreenState extends State<HomeScreen>
                           Text(
                             '20 min  •  6 exercises',
 
-                            style: TextStyle(color: textBlue, fontSize: 12),
+                            style: TextStyle(
+                              color: textBlue,
+                              fontSize: 12,
+                            ),
                           ),
 
                           SizedBox(height: 8),
 
                           Row(
                             children: [
-                              Icon(Icons.bolt_rounded, color: coral, size: 15),
+                              Icon(
+                                Icons.bolt_rounded,
+                                color: coral,
+                                size: 15,
+                              ),
 
                               SizedBox(width: 4),
 
                               Text(
                                 'Intermediate',
+
                                 style: TextStyle(
                                   color: coral,
                                   fontSize: 11,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight:
+                                  FontWeight.w700,
                                 ),
                               ),
                             ],
@@ -544,7 +674,10 @@ class _HomeScreenState extends State<HomeScreen>
 
                       decoration: BoxDecoration(
                         color: primaryBlue,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius:
+                        BorderRadius.circular(
+                          14,
+                        ),
                       ),
 
                       child: const Icon(
@@ -562,8 +695,9 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 25),
 
           // ======================================================
-          // CURRENT CHALLENGE
+          // CURRENT CHALLENGE TITLE
           // ======================================================
+
           animatedItem(
             index: 4,
 
@@ -581,24 +715,36 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 10),
 
           // ======================================================
-          // CURRENT CHALLENGE CARD
-          // ONLY CHANGE: GestureDetector + navigation
+          // CURRENT CHALLENGE
           // ======================================================
+
           StreamBuilder<List<Challenge>>(
-            stream: _challengeService.getUserChallenges(),
+            stream:
+            _challengeService.getUserChallenges(),
+
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              if (snapshot.connectionState ==
+                  ConnectionState.waiting) {
                 return animatedItem(
                   index: 5,
+
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(25),
+
+                    padding:
+                    const EdgeInsets.all(25),
+
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius:
+                      BorderRadius.circular(
+                        22,
+                      ),
                     ),
+
                     child: const Center(
-                      child: CircularProgressIndicator(),
+                      child:
+                      CircularProgressIndicator(),
                     ),
                   ),
                 );
@@ -607,15 +753,24 @@ class _HomeScreenState extends State<HomeScreen>
               if (snapshot.hasError) {
                 return animatedItem(
                   index: 5,
+
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+
+                    padding:
+                    const EdgeInsets.all(20),
+
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius:
+                      BorderRadius.circular(
+                        22,
+                      ),
                     ),
+
                     child: const Text(
                       'Unable to load your challenge.',
+
                       style: TextStyle(
                         color: textBlue,
                         fontSize: 12,
@@ -625,40 +780,63 @@ class _HomeScreenState extends State<HomeScreen>
                 );
               }
 
-              final challenges = snapshot.data ?? [];
+              final challenges =
+                  snapshot.data ?? [];
 
               if (challenges.isEmpty) {
                 return animatedItem(
                   index: 5,
+
                   child: GestureDetector(
                     onTap: () {
-                      Navigator.pushNamed(context, '/goal-selection');
+                      Navigator.pushNamed(
+                        context,
+                        '/goal-selection',
+                      );
                     },
+
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(20),
+
+                      padding:
+                      const EdgeInsets.all(20),
+
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
+
+                        borderRadius:
+                        BorderRadius.circular(
+                          22,
+                        ),
+
                         border: Border.all(
-                          color: primaryBlue.withOpacity(0.13),
+                          color:
+                          primaryBlue.withOpacity(
+                            0.13,
+                          ),
                         ),
                       ),
+
                       child: const Row(
                         children: [
                           Icon(
-                            Icons.add_circle_outline_rounded,
+                            Icons
+                                .add_circle_outline_rounded,
                             color: primaryBlue,
                             size: 32,
                           ),
+
                           SizedBox(width: 14),
+
                           Expanded(
                             child: Text(
                               'No active challenge yet.\nTap to create one!',
+
                               style: TextStyle(
                                 color: darkBlue,
                                 fontSize: 13,
-                                fontWeight: FontWeight.w700,
+                                fontWeight:
+                                FontWeight.w700,
                               ),
                             ),
                           ),
@@ -670,24 +848,43 @@ class _HomeScreenState extends State<HomeScreen>
               }
 
               // Display the most recent challenge.
-              final challenge = challenges.last;
+              final challenge =
+                  challenges.last;
 
               return FutureBuilder<double>(
-                future: _challengeService.calculateProgress(challenge),
-                builder: (context, progressSnapshot) {
-                  if (progressSnapshot.connectionState ==
+                future: _challengeService
+                    .calculateProgress(
+                  challenge,
+                ),
+
+                builder:
+                    (context, progressSnapshot) {
+                  if (progressSnapshot
+                      .connectionState ==
                       ConnectionState.waiting) {
                     return animatedItem(
                       index: 5,
+
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(25),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(22),
+
+                        padding:
+                        const EdgeInsets.all(
+                          25,
                         ),
+
+                        decoration:
+                        BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                          BorderRadius.circular(
+                            22,
+                          ),
+                        ),
+
                         child: const Center(
-                          child: CircularProgressIndicator(),
+                          child:
+                          CircularProgressIndicator(),
                         ),
                       ),
                     );
@@ -696,15 +893,27 @@ class _HomeScreenState extends State<HomeScreen>
                   if (progressSnapshot.hasError) {
                     return animatedItem(
                       index: 5,
+
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(22),
+
+                        padding:
+                        const EdgeInsets.all(
+                          20,
                         ),
+
+                        decoration:
+                        BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                          BorderRadius.circular(
+                            22,
+                          ),
+                        ),
+
                         child: const Text(
                           'Unable to load challenge progress.',
+
                           style: TextStyle(
                             color: textBlue,
                             fontSize: 12,
@@ -717,171 +926,271 @@ class _HomeScreenState extends State<HomeScreen>
                   final currentProgress =
                       progressSnapshot.data ?? 0.0;
 
-                  final currentStatus = challenge.status;
+                  final currentStatus =
+                      challenge.status;
 
                   final progressPercentage =
                   (currentProgress * 100).round();
 
-                  final totalDays = challenge.duration;
+                  final totalDays =
+                      challenge.duration;
 
                   final completedDays =
-                  (currentProgress * totalDays).round();
+                  (currentProgress * totalDays)
+                      .round();
 
                   final daysRemaining =
-                  (totalDays - completedDays).clamp(0, totalDays);
+                  (totalDays - completedDays)
+                      .clamp(
+                    0,
+                    totalDays,
+                  );
 
                   return animatedItem(
-                      index: 5,
-                      child: GestureDetector(
-                        onTap: currentStatus == 'failed' ||
-                            currentStatus == 'completed'
-                            ? null
-                            : () {
-                          Navigator.pushNamed(
-                            context,
-                            '/workout',
-                            arguments: {
-                              'goal': challenge.goal,
-                              'exercise': challenge.exercise,
-                              'difficulty': challenge.difficulty,
-                              'duration': challenge.duration,
-                              'challengeId': challenge.id,
-                            },
-                          );
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(19),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(
-                              color: primaryBlue.withOpacity(0.13),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: darkBlue.withOpacity(0.055),
-                                blurRadius: 18,
-                                offset: const Offset(0, 7),
-                              ),
-                            ],
+                    index: 5,
+
+                    child: GestureDetector(
+                      onTap:
+                      currentStatus == 'failed' ||
+                          currentStatus ==
+                              'completed'
+                          ? null
+                          : () {
+                        Navigator
+                            .pushNamed(
+                          context,
+                          '/workout',
+                          arguments: {
+                            'goal':
+                            challenge.goal,
+                            'exercise':
+                            challenge
+                                .exercise,
+                            'difficulty':
+                            challenge
+                                .difficulty,
+                            'duration':
+                            challenge
+                                .duration,
+                            'challengeId':
+                            challenge.id,
+                          },
+                        );
+                      },
+
+                      child: Container(
+                        width: double.infinity,
+
+                        padding:
+                        const EdgeInsets.all(
+                          19,
+                        ),
+
+                        decoration:
+                        BoxDecoration(
+                          color: Colors.white,
+
+                          borderRadius:
+                          BorderRadius.circular(
+                            22,
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 45,
-                                    height: 45,
-                                    decoration: BoxDecoration(
-                                      color: softCoral,
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: const Icon(
-                                      Icons.emoji_events_rounded,
-                                      color: coral,
-                                      size: 25,
-                                    ),
-                                  ),
 
-                                  const SizedBox(width: 12),
+                          border: Border.all(
+                            color:
+                            primaryBlue.withOpacity(
+                              0.13,
+                            ),
+                          ),
 
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '${challenge.duration} Day ${challenge.goal} Challenge',
-                                          style: const TextStyle(
-                                            color: darkBlue,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-
-                                        const SizedBox(height: 3),
-
-                                        Text(
-                                          '${challenge.exercise} • ${challenge.difficulty}',
-                                          style: const TextStyle(
-                                            color: textBlue,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  Text(
-                                    '$progressPercentage%',
-                                    style: TextStyle(
-                                      color: currentStatus == 'failed'
-                                          ? coral
-                                          : primaryBlue,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ],
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                              darkBlue.withOpacity(
+                                0.055,
                               ),
+                              blurRadius: 18,
+                              offset:
+                              const Offset(0, 7),
+                            ),
+                          ],
+                        ),
 
-                              const SizedBox(height: 17),
+                        child: Column(
+                          crossAxisAlignment:
+                          CrossAxisAlignment.start,
 
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(20),
-                                child: LinearProgressIndicator(
-                                  value: currentProgress,
-                                  minHeight: 9,
-                                  backgroundColor:
-                                  const Color(0xFFE5F3F6),
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    currentStatus == 'failed'
-                                        ? coral
-                                        : primaryBlue,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 45,
+                                  height: 45,
+
+                                  decoration:
+                                  BoxDecoration(
+                                    color: softCoral,
+                                    borderRadius:
+                                    BorderRadius
+                                        .circular(
+                                      14,
+                                    ),
+                                  ),
+
+                                  child: const Icon(
+                                    Icons
+                                        .emoji_events_rounded,
+                                    color: coral,
+                                    size: 25,
                                   ),
                                 ),
+
+                                const SizedBox(
+                                  width: 12,
+                                ),
+
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment
+                                        .start,
+
+                                    children: [
+                                      Text(
+                                        '${challenge.duration} Day ${challenge.goal} Challenge',
+
+                                        style:
+                                        const TextStyle(
+                                          color:
+                                          darkBlue,
+                                          fontSize: 15,
+                                          fontWeight:
+                                          FontWeight
+                                              .w800,
+                                        ),
+                                      ),
+
+                                      const SizedBox(
+                                        height: 3,
+                                      ),
+
+                                      Text(
+                                        '${challenge.exercise} • ${challenge.difficulty}',
+
+                                        style:
+                                        const TextStyle(
+                                          color:
+                                          textBlue,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                Text(
+                                  '$progressPercentage%',
+
+                                  style: TextStyle(
+                                    color:
+                                    currentStatus ==
+                                        'failed'
+                                        ? coral
+                                        : primaryBlue,
+                                    fontSize: 15,
+                                    fontWeight:
+                                    FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(
+                              height: 17,
+                            ),
+
+                            ClipRRect(
+                              borderRadius:
+                              BorderRadius.circular(
+                                20,
                               ),
 
-                              const SizedBox(height: 9),
+                              child:
+                              LinearProgressIndicator(
+                                value:
+                                currentProgress,
 
-                              Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '$completedDays of $totalDays days completed',
-                                    style: const TextStyle(
-                                      color: textBlue,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                                minHeight: 9,
 
-                                  Text(
-                                    currentStatus == 'failed'
-                                        ? 'Challenge failed'
-                                        : currentStatus == 'completed'
-                                        ? 'Completed'
-                                        : '$daysRemaining days left',
-                                    style: TextStyle(
-                                      color: currentStatus == 'failed'
-                                          ? coral
-                                          : currentStatus == 'completed'
-                                          ? primaryBlue
-                                          : coral,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
+                                backgroundColor:
+                                const Color(
+                                  0xFFE5F3F6,
+                                ),
+
+                                valueColor:
+                                AlwaysStoppedAnimation<
+                                    Color>(
+                                  currentStatus ==
+                                      'failed'
+                                      ? coral
+                                      : primaryBlue,
+                                ),
                               ),
-                            ],
-                          ),
+                            ),
+
+                            const SizedBox(
+                              height: 9,
+                            ),
+
+                            Row(
+                              mainAxisAlignment:
+                              MainAxisAlignment
+                                  .spaceBetween,
+
+                              children: [
+                                Text(
+                                  '$completedDays of $totalDays days completed',
+
+                                  style:
+                                  const TextStyle(
+                                    color:
+                                    textBlue,
+                                    fontSize: 11,
+                                    fontWeight:
+                                    FontWeight.w600,
+                                  ),
+                                ),
+
+                                Text(
+                                  currentStatus ==
+                                      'failed'
+                                      ? 'Challenge failed'
+                                      : currentStatus ==
+                                      'completed'
+                                      ? 'Completed'
+                                      : '$daysRemaining days left',
+
+                                  style: TextStyle(
+                                    color: currentStatus ==
+                                        'failed'
+                                        ? coral
+                                        : currentStatus ==
+                                        'completed'
+                                        ? primaryBlue
+                                        : coral,
+
+                                    fontSize: 11,
+
+                                    fontWeight:
+                                    FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                    );
+                    ),
+                  );
                 },
               );
             },
@@ -890,8 +1199,9 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 25),
 
           // ======================================================
-          // QUICK STATS
+          // YOUR PROGRESS
           // ======================================================
+
           animatedItem(
             index: 6,
 
@@ -908,32 +1218,50 @@ class _HomeScreenState extends State<HomeScreen>
 
           const SizedBox(height: 10),
 
-          FutureBuilder<List<Workout>>(
-            future: _workoutService.getVerifiedWorkouts(),
-            builder: (context, snapshot) {
-              final workouts = snapshot.data ?? [];
+          // ======================================================
+          // QUICK STATS
+          // ======================================================
 
-              final totalSeconds = workouts.fold<int>(
+          FutureBuilder<List<Workout>>(
+            future:
+            _workoutService.getVerifiedWorkouts(),
+
+            builder: (context, snapshot) {
+              final workouts =
+                  snapshot.data ?? [];
+
+              final totalSeconds =
+              workouts.fold<int>(
                 0,
-                    (sum, workout) => sum + workout.durationSeconds,
+                    (sum, workout) =>
+                sum + workout.durationSeconds,
               );
 
-              final totalMinutes = totalSeconds ~/ 60;
+              final totalMinutes =
+                  totalSeconds ~/ 60;
 
-              final activeTime = totalMinutes >= 60
+              final activeTime =
+              totalMinutes >= 60
                   ? '${(totalMinutes / 60).toStringAsFixed(1)}h'
                   : '${totalMinutes}m';
 
               return animatedItem(
                 index: 7,
+
                 child: Row(
                   children: [
                     Expanded(
                       child: _statCard(
-                        icon: Icons.check_circle_outline_rounded,
-                        value: '${workouts.length}',
+                        icon: Icons
+                            .check_circle_outline_rounded,
+
+                        value:
+                        '${workouts.length}',
+
                         label: 'Workouts',
-                        iconColor: primaryBlue,
+
+                        iconColor:
+                        primaryBlue,
                       ),
                     ),
 
@@ -941,9 +1269,13 @@ class _HomeScreenState extends State<HomeScreen>
 
                     Expanded(
                       child: _statCard(
-                        icon: Icons.timer_outlined,
+                        icon:
+                        Icons.timer_outlined,
+
                         value: activeTime,
+
                         label: 'Active Time',
+
                         iconColor: coral,
                       ),
                     ),
@@ -952,9 +1284,13 @@ class _HomeScreenState extends State<HomeScreen>
 
                     Expanded(
                       child: _statCard(
-                        icon: Icons.local_fire_department_outlined,
+                        icon: Icons
+                            .local_fire_department_outlined,
+
                         value: '—',
+
                         label: 'Calories',
+
                         iconColor: darkBlue,
                       ),
                     ),
@@ -967,18 +1303,23 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 25),
 
           // ======================================================
-          // REWARD + WALLET
+          // REWARDS + WALLET
           // ======================================================
+
           animatedItem(
             index: 8,
 
             child: Row(
               children: [
-                Expanded(child: _rewardCard()),
+                Expanded(
+                  child: _rewardCard(),
+                ),
 
                 const SizedBox(width: 12),
 
-                Expanded(child: _walletCard()),
+                Expanded(
+                  child: _walletCard(),
+                ),
               ],
             ),
           ),
@@ -988,23 +1329,30 @@ class _HomeScreenState extends State<HomeScreen>
           // ======================================================
           // MOTIVATION
           // ======================================================
+
           animatedItem(
             index: 9,
 
             child: Container(
               width: double.infinity,
 
-              padding: const EdgeInsets.all(18),
+              padding:
+              const EdgeInsets.all(18),
 
               decoration: BoxDecoration(
                 color: const Color(0xFFE5F7FA),
 
-                borderRadius: BorderRadius.circular(20),
+                borderRadius:
+                BorderRadius.circular(20),
               ),
 
               child: const Row(
                 children: [
-                  Icon(Icons.auto_awesome_rounded, color: coral, size: 25),
+                  Icon(
+                    Icons.auto_awesome_rounded,
+                    color: coral,
+                    size: 25,
+                  ),
 
                   SizedBox(width: 12),
 
@@ -1015,7 +1363,8 @@ class _HomeScreenState extends State<HomeScreen>
                       style: TextStyle(
                         color: darkBlue,
                         fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        fontWeight:
+                        FontWeight.w600,
                         height: 1.4,
                       ),
                     ),
@@ -1040,16 +1389,22 @@ class _HomeScreenState extends State<HomeScreen>
     required Color iconColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
+      padding:
+      const EdgeInsets.symmetric(
+        vertical: 15,
+        horizontal: 8,
+      ),
 
       decoration: BoxDecoration(
         color: Colors.white,
 
-        borderRadius: BorderRadius.circular(18),
+        borderRadius:
+        BorderRadius.circular(18),
 
         boxShadow: [
           BoxShadow(
-            color: darkBlue.withOpacity(0.055),
+            color:
+            darkBlue.withOpacity(0.055),
             blurRadius: 14,
             offset: const Offset(0, 5),
           ),
@@ -1058,7 +1413,11 @@ class _HomeScreenState extends State<HomeScreen>
 
       child: Column(
         children: [
-          Icon(icon, color: iconColor, size: 25),
+          Icon(
+            icon,
+            color: iconColor,
+            size: 25,
+          ),
 
           const SizedBox(height: 8),
 
@@ -1097,20 +1456,26 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _rewardCard() {
     return GestureDetector(
       onTap: () {
-        showComingSoon('Rewards');
+        Navigator.pushNamed(
+          context,
+          '/rewards',
+        );
       },
 
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding:
+        const EdgeInsets.all(16),
 
         decoration: BoxDecoration(
           color: Colors.white,
 
-          borderRadius: BorderRadius.circular(20),
+          borderRadius:
+          BorderRadius.circular(20),
 
           boxShadow: [
             BoxShadow(
-              color: darkBlue.withOpacity(0.055),
+              color:
+              darkBlue.withOpacity(0.055),
               blurRadius: 14,
               offset: const Offset(0, 5),
             ),
@@ -1118,7 +1483,8 @@ class _HomeScreenState extends State<HomeScreen>
         ),
 
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+          CrossAxisAlignment.start,
 
           children: [
             Container(
@@ -1127,7 +1493,9 @@ class _HomeScreenState extends State<HomeScreen>
 
               decoration: BoxDecoration(
                 color: softCoral,
-                borderRadius: BorderRadius.circular(13),
+
+                borderRadius:
+                BorderRadius.circular(13),
               ),
 
               child: const Icon(
@@ -1145,7 +1513,8 @@ class _HomeScreenState extends State<HomeScreen>
               style: TextStyle(
                 color: darkBlue,
                 fontSize: 14,
-                fontWeight: FontWeight.w800,
+                fontWeight:
+                FontWeight.w800,
               ),
             ),
 
@@ -1154,7 +1523,10 @@ class _HomeScreenState extends State<HomeScreen>
             const Text(
               '12 earned',
 
-              style: TextStyle(color: textBlue, fontSize: 11),
+              style: TextStyle(
+                color: textBlue,
+                fontSize: 11,
+              ),
             ),
           ],
         ),
@@ -1169,20 +1541,26 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _walletCard() {
     return GestureDetector(
       onTap: () {
-        showComingSoon('Wallet');
+        Navigator.pushNamed(
+          context,
+          '/wallet',
+        );
       },
 
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding:
+        const EdgeInsets.all(16),
 
         decoration: BoxDecoration(
           color: Colors.white,
 
-          borderRadius: BorderRadius.circular(20),
+          borderRadius:
+          BorderRadius.circular(20),
 
           boxShadow: [
             BoxShadow(
-              color: darkBlue.withOpacity(0.055),
+              color:
+              darkBlue.withOpacity(0.055),
               blurRadius: 14,
               offset: const Offset(0, 5),
             ),
@@ -1190,7 +1568,8 @@ class _HomeScreenState extends State<HomeScreen>
         ),
 
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+          CrossAxisAlignment.start,
 
           children: [
             Container(
@@ -1199,11 +1578,14 @@ class _HomeScreenState extends State<HomeScreen>
 
               decoration: BoxDecoration(
                 color: lightBlue,
-                borderRadius: BorderRadius.circular(13),
+
+                borderRadius:
+                BorderRadius.circular(13),
               ),
 
               child: const Icon(
-                Icons.account_balance_wallet_rounded,
+                Icons
+                    .account_balance_wallet_rounded,
                 color: primaryBlue,
                 size: 23,
               ),
@@ -1217,7 +1599,8 @@ class _HomeScreenState extends State<HomeScreen>
               style: TextStyle(
                 color: darkBlue,
                 fontSize: 14,
-                fontWeight: FontWeight.w800,
+                fontWeight:
+                FontWeight.w800,
               ),
             ),
 
@@ -1226,7 +1609,10 @@ class _HomeScreenState extends State<HomeScreen>
             Text(
               '$walletCoins coins',
 
-              style: const TextStyle(color: textBlue, fontSize: 11),
+              style: const TextStyle(
+                color: textBlue,
+                fontSize: 11,
+              ),
             ),
           ],
         ),
@@ -1245,7 +1631,8 @@ class _HomeScreenState extends State<HomeScreen>
 
         boxShadow: [
           BoxShadow(
-            color: darkBlue.withOpacity(0.08),
+            color:
+            darkBlue.withOpacity(0.08),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -1253,125 +1640,126 @@ class _HomeScreenState extends State<HomeScreen>
       ),
 
       child: NavigationBar(
-        backgroundColor: Colors.white,
+        backgroundColor:
+        Colors.white,
 
         elevation: 0,
 
-        selectedIndex: _selectedIndex,
+        selectedIndex:
+        _selectedIndex,
 
-        onDestinationSelected: (index) {
+        onDestinationSelected:
+            (index) {
           setState(() {
             _selectedIndex = index;
           });
 
-          _animationController.forward(from: 0);
+          _animationController
+              .forward(from: 0);
         },
 
-        indicatorColor: primaryBlue.withOpacity(0.13),
+        indicatorColor:
+        primaryBlue.withOpacity(
+          0.13,
+        ),
 
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
+        labelTextStyle:
+        WidgetStateProperty
+            .resolveWith(
+              (states) {
+            if (states.contains(
+              WidgetState.selected,
+            )) {
+              return const TextStyle(
+                color: primaryBlue,
+                fontSize: 10,
+                fontWeight:
+                FontWeight.w800,
+              );
+            }
+
             return const TextStyle(
-              color: primaryBlue,
+              color: textBlue,
               fontSize: 10,
-              fontWeight: FontWeight.w800,
+              fontWeight:
+              FontWeight.w500,
             );
-          }
-
-          return const TextStyle(
-            color: textBlue,
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-          );
-        }),
+          },
+        ),
 
         destinations: const [
+          // HOME
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
+            icon: Icon(
+              Icons.home_outlined,
+            ),
 
-            selectedIcon: Icon(Icons.home_rounded, color: primaryBlue),
+            selectedIcon: Icon(
+              Icons.home_rounded,
+              color: primaryBlue,
+            ),
 
             label: 'Home',
           ),
 
+          // CHALLENGES
           NavigationDestination(
-            icon: Icon(Icons.emoji_events_outlined),
+            icon: Icon(
+              Icons
+                  .emoji_events_outlined,
+            ),
 
-            selectedIcon: Icon(Icons.emoji_events_rounded, color: primaryBlue),
+            selectedIcon: Icon(
+              Icons.emoji_events_rounded,
+              color: primaryBlue,
+            ),
 
             label: 'Challenges',
           ),
 
+          // PROGRESS
           NavigationDestination(
-            icon: Icon(Icons.show_chart_outlined),
+            icon: Icon(
+              Icons.show_chart_outlined,
+            ),
 
-            selectedIcon: Icon(Icons.show_chart_rounded, color: primaryBlue),
+            selectedIcon: Icon(
+              Icons.show_chart_rounded,
+              color: primaryBlue,
+            ),
 
             label: 'Progress',
           ),
 
+          // WALLET
           NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
+            icon: Icon(
+              Icons
+                  .account_balance_wallet_outlined,
+            ),
 
             selectedIcon: Icon(
-              Icons.account_balance_wallet_rounded,
+              Icons
+                  .account_balance_wallet_rounded,
               color: primaryBlue,
             ),
 
             label: 'Wallet',
           ),
 
+          // PROFILE
           NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
+            icon: Icon(
+              Icons
+                  .person_outline_rounded,
+            ),
 
-            selectedIcon: Icon(Icons.person_rounded, color: primaryBlue),
+            selectedIcon: Icon(
+              Icons.person_rounded,
+              color: primaryBlue,
+            ),
 
             label: 'Profile',
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // PLACEHOLDER SCREENS
-  // ============================================================
-
-  Widget _buildPlaceholder(String title, IconData icon) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-
-            decoration: BoxDecoration(
-              color: primaryBlue.withOpacity(0.12),
-              shape: BoxShape.circle,
-            ),
-
-            child: Icon(icon, color: primaryBlue, size: 40),
-          ),
-
-          const SizedBox(height: 18),
-
-          Text(
-            title,
-
-            style: const TextStyle(
-              color: darkBlue,
-              fontSize: 23,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          const Text(
-            'This section is coming next.',
-            style: TextStyle(color: textBlue, fontSize: 13),
           ),
         ],
       ),
